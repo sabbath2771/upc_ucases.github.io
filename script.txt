@@ -1,17 +1,17 @@
 #!/bin/bash
 
-# Script para ejecutar GNOME Calculator
-# Este script abre la calculadora de GNOME
+# Script to run GNOME Calculator
+# This script opens the GNOME calculator
 
-# Verificar si gnome-calculator está instalada
+# Check if gnome-calculator is installed
 if command -v gnome-calculator &> /dev/null; then
-    echo "Iniciando GNOME Calculator..."
+    echo "Starting GNOME Calculator..."
     gnome-calculator &
 else
-    echo "Error: gnome-calculator no está instalada"
-    echo "Instalando gnome-calculator..."
+    echo "Error: gnome-calculator is not installed"
+    echo "Installing gnome-calculator..."
     
-    # Intentar instalar según el gestor de paquetes disponible
+    # Try to install based on the available package manager
     if command -v apt &> /dev/null; then
         sudo apt update && sudo apt install -y gnome-calculator
     elif command -v dnf &> /dev/null; then
@@ -20,9 +20,9 @@ else
         sudo pacman -S gnome-calculator
     fi
     
-    # Ejecutar la calculadora
+    # Run the calculator
     gnome-calculator &
 fi
 
-echo "GNOME Calculator se está ejecutando..."
+echo "GNOME Calculator is running..."
 exit 0
