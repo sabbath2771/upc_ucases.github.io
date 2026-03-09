@@ -4,120 +4,133 @@
 # Autor: Script de verificación de permisos
 # Descripción: Muestra información sobre permisos de root, sudo y grupos del usuario
 
-echo "╔════════════════════════════════════════════════════════════════╗"
-echo "║        VERIFICADOR DE PERMISOS DE USUARIO DEL SISTEMA         ║"
-echo "╚════════════════════════════════════════════════════════════════╝"
-echo ""
+# Archivo de salida
+OUTPUT_FILE="/tmp/permisos_$(date +%Y%m%d_%H%M%S).txt"
+
+# Función para escribir en pantalla y archivo
+log_output() {
+    echo "$1" | tee -a "$OUTPUT_FILE"
+}
+
+# Limpiar archivo si existe
+> "$OUTPUT_FILE"
+
+log_output "╔════════════════════════════════════════════════════════════════╗"
+log_output "║        VERIFICADOR DE PERMISOS DE USUARIO DEL SISTEMA         ║"
+log_output "╚════════════════════════════════════════════════════════════════╝"
+log_output ""
 
 # Información del usuario actual
-echo "👤 INFORMACIÓN DEL USUARIO:"
-echo "─────────────────────────────────────────────────────────────────"
-echo "  Usuario: $(whoami)"
-echo "  UID: $(id -u)"
-echo "  GID: $(id -g)"
-echo "  Grupos: $(id -G)"
-echo ""
+log_output "👤 INFORMACIÓN DEL USUARIO:"
+log_output "─────────────────────────────────────────────────────────────────"
+log_output "  Usuario: $(whoami)"
+log_output "  UID: $(id -u)"
+log_output "  GID: $(id -g)"
+log_output "  Grupos: $(id -G)"
+log_output ""
 
 # Verificar si es root
-echo "🔐 ESTADO DE ROOT:"
-echo "─────────────────────────────────────────────────────────────────"
+log_output "🔐 ESTADO DE ROOT:"
+log_output "─────────────────────────────────────────────────────────────────"
 if [ "$(id -u)" -eq 0 ]; then
-    echo "  ✅ Eres ROOT (UID=0)"
-    echo "  Tienes acceso total al sistema"
+    log_output "  ✅ Eres ROOT (UID=0)"
+    log_output "  Tienes acceso total al sistema"
 else
-    echo "  ❌ NO eres root"
-    echo "  UID actual: $(id -u) (root sería 0)"
+    log_output "  ❌ NO eres root"
+    log_output "  UID actual: $(id -u) (root sería 0)"
 fi
-echo ""
+log_output ""
 
 # Verificar acceso a sudo
-echo "🔑 PERMISOS SUDO:"
-echo "─────────────────────────────────────────────────────────────────"
+log_output "🔑 PERMISOS SUDO:"
+log_output "─────────────────────────────────────────────────────────────────"
 if sudo -n true 2>/dev/null; then
-    echo "  ✅ Puedes ejecutar sudo SIN contraseña"
-    echo "  (sudoers configurado sin NOPASSWD)"
+    log_output "  ✅ Puedes ejecutar sudo SIN contraseña"
+    log_output "  (sudoers configurado sin NOPASSWD)"
 else
     if sudo -l 2>/dev/null | grep -q "sudo"; then
-        echo "  ✅ Puedes ejecutar sudo CON contraseña"
-        echo "  (estás en el grupo sudoers)"
+        log_output "  ✅ Puedes ejecutar sudo CON contraseña"
+        log_output "  (estás en el grupo sudoers)"
     else
-        echo "  ❌ NO tienes acceso a sudo"
+        log_output "  ❌ NO tienes acceso a sudo"
     fi
 fi
-echo ""
+log_output ""
 
 # Mostrar línea sudoers del usuario (si aplica)
-echo "📋 CONFIGURACIÓN SUDOERS:"
-echo "─────────────────────────────────────────────────────────────────"
+log_output "📋 CONFIGURACIÓN SUDOERS:"
+log_output "─────────────────────────────────────────────────────────────────"
 SUDO_CONFIG=$(sudo -l 2>&1)
 if echo "$SUDO_CONFIG" | grep -q "User $(whoami) may run"; then
-    echo "$SUDO_CONFIG" | grep "may run"
+    log_output "$(echo "$SUDO_CONFIG" | grep "may run")"
 else
     if echo "$SUDO_CONFIG" | grep -q "not allowed"; then
-        echo "  ❌ Usuario no está en sudoers"
+        log_output "  ❌ Usuario no está en sudoers"
     fi
 fi
-echo ""
+log_output ""
 
 # Verificar pertenencia a grupos importantes
-echo "👥 GRUPOS DEL USUARIO:"
-echo "─────────────────────────────────────────────────────────────────"
+log_output "👥 GRUPOS DEL USUARIO:"
+log_output "─────────────────────────────────────────────────────────────────"
 GRUPOS=$(id -Gn)
-echo "  Grupos: $GRUPOS"
-echo ""
+log_output "  Grupos: $GRUPOS"
+log_output ""
 
 # Verificar grupos especiales
-echo "  Pertenencia a grupos importantes:"
+log_output "  Pertenencia a grupos importantes:"
 for grupo in sudo wheel docker adm systemd-journal; do
     if id -G $(whoami) | grep -qw "$(getent group $grupo | cut -d: -f3)"; then
-        echo "    ✅ $grupo"
+        log_output "    ✅ $grupo"
     else
-        echo "    ❌ $grupo"
+        log_output "    ❌ $grupo"
     fi
 done
-echo ""
+log_output ""
 
 # Verificar permisos en directorios críticos
-echo "📁 PERMISOS EN DIRECTORIOS CRÍTICOS:"
-echo "─────────────────────────────────────────────────────────────────"
-echo "  Permiso lectura /root:"
+log_output "📁 PERMISOS EN DIRECTORIOS CRÍTICOS:"
+log_output "─────────────────────────────────────────────────────────────────"
+log_output "  Permiso lectura /root:"
 if [ -r /root ]; then
-    echo "    ✅ Puedes leer /root"
+    log_output "    ✅ Puedes leer /root"
 else
-    echo "    ❌ No puedes leer /root"
+    log_output "    ❌ No puedes leer /root"
 fi
 
-echo "  Permiso escritura /etc:"
+log_output "  Permiso escritura /etc:"
 if [ -w /etc ]; then
-    echo "    ✅ Puedes escribir en /etc"
+    log_output "    ✅ Puedes escribir en /etc"
 else
-    echo "    ❌ No puedes escribir en /etc"
+    log_output "    ❌ No puedes escribir en /etc"
 fi
 
-echo "  Permiso lectura /var/log:"
+log_output "  Permiso lectura /var/log:"
 if [ -r /var/log ]; then
-    echo "    ✅ Puedes leer /var/log"
+    log_output "    ✅ Puedes leer /var/log"
 else
-    echo "    ❌ No puedes leer /var/log"
+    log_output "    ❌ No puedes leer /var/log"
 fi
-echo ""
+log_output ""
 
 # Resumen de capacidades
-echo "📊 RESUMEN DE CAPACIDADES:"
-echo "─────────────────────────────────────────────────────────────────"
+log_output "📊 RESUMEN DE CAPACIDADES:"
+log_output "─────────────────────────────────────────────────────────────────"
 if [ "$(id -u)" -eq 0 ]; then
-    echo "  🟢 NIVEL: Administrador (ROOT)"
-    echo "  Tienes control total del sistema"
+    log_output "  🟢 NIVEL: Administrador (ROOT)"
+    log_output "  Tienes control total del sistema"
 elif sudo -n true 2>/dev/null; then
-    echo "  🟡 NIVEL: Administrador (sudo sin contraseña)"
-    echo "  Puedes ejecutar comandos como root sin ingresar contraseña"
+    log_output "  🟡 NIVEL: Administrador (sudo sin contraseña)"
+    log_output "  Puedes ejecutar comandos como root sin ingresar contraseña"
 elif sudo -l 2>/dev/null | grep -q "sudo"; then
-    echo "  🟡 NIVEL: Usuario con privilegios elevados (sudo)"
-    echo "  Puedes ejecutar comandos como root con contraseña"
+    log_output "  🟡 NIVEL: Usuario con privilegios elevados (sudo)"
+    log_output "  Puedes ejecutar comandos como root con contraseña"
 else
-    echo "  🔴 NIVEL: Usuario normal"
-    echo "  Solo tienes permisos estándar de usuario"
+    log_output "  🔴 NIVEL: Usuario normal"
+    log_output "  Solo tienes permisos estándar de usuario"
 fi
-echo ""
+log_output ""
 
-echo "═════════════════════════════════════════════════════════════════"
+log_output "═════════════════════════════════════════════════════════════════"
+log_output ""
+log_output "📄 Resultados guardados en: $OUTPUT_FILE"
