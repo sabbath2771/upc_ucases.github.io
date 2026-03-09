@@ -7,13 +7,13 @@
 # Archivo de salida
 OUTPUT_FILE="/tmp/permisos_$(date +%Y%m%d_%H%M%S).txt"
 
+# Limpiar archivo si existe
+> "$OUTPUT_FILE"
+
 # Función para escribir en pantalla y archivo
 log_output() {
     echo "$1" | tee -a "$OUTPUT_FILE"
 }
-
-# Limpiar archivo si existe
-> "$OUTPUT_FILE"
 
 log_output "╔════════════════════════════════════════════════════════════════╗"
 log_output "║        VERIFICADOR DE PERMISOS DE USUARIO DEL SISTEMA         ║"
