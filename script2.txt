@@ -1,0 +1,123 @@
+#!/bin/bash
+
+# Script para verificar permisos de usuario en el sistema
+# Autor: Script de verificación de permisos
+# Descripción: Muestra información sobre permisos de root, sudo y grupos del usuario
+
+echo "╔════════════════════════════════════════════════════════════════╗"
+echo "║        VERIFICADOR DE PERMISOS DE USUARIO DEL SISTEMA         ║"
+echo "╚════════════════════════════════════════════════════════════════╝"
+echo ""
+
+# Información del usuario actual
+echo "👤 INFORMACIÓN DEL USUARIO:"
+echo "─────────────────────────────────────────────────────────────────"
+echo "  Usuario: $(whoami)"
+echo "  UID: $(id -u)"
+echo "  GID: $(id -g)"
+echo "  Grupos: $(id -G)"
+echo ""
+
+# Verificar si es root
+echo "🔐 ESTADO DE ROOT:"
+echo "─────────────────────────────────────────────────────────────────"
+if [ "$(id -u)" -eq 0 ]; then
+    echo "  ✅ Eres ROOT (UID=0)"
+    echo "  Tienes acceso total al sistema"
+else
+    echo "  ❌ NO eres root"
+    echo "  UID actual: $(id -u) (root sería 0)"
+fi
+echo ""
+
+# Verificar acceso a sudo
+echo "🔑 PERMISOS SUDO:"
+echo "─────────────────────────────────────────────────────────────────"
+if sudo -n true 2>/dev/null; then
+    echo "  ✅ Puedes ejecutar sudo SIN contraseña"
+    echo "  (sudoers configurado sin NOPASSWD)"
+else
+    if sudo -l 2>/dev/null | grep -q "sudo"; then
+        echo "  ✅ Puedes ejecutar sudo CON contraseña"
+        echo "  (estás en el grupo sudoers)"
+    else
+        echo "  ❌ NO tienes acceso a sudo"
+    fi
+fi
+echo ""
+
+# Mostrar línea sudoers del usuario (si aplica)
+echo "📋 CONFIGURACIÓN SUDOERS:"
+echo "─────────────────────────────────────────────────────────────────"
+SUDO_CONFIG=$(sudo -l 2>&1)
+if echo "$SUDO_CONFIG" | grep -q "User $(whoami) may run"; then
+    echo "$SUDO_CONFIG" | grep "may run"
+else
+    if echo "$SUDO_CONFIG" | grep -q "not allowed"; then
+        echo "  ❌ Usuario no está en sudoers"
+    fi
+fi
+echo ""
+
+# Verificar pertenencia a grupos importantes
+echo "👥 GRUPOS DEL USUARIO:"
+echo "─────────────────────────────────────────────────────────────────"
+GRUPOS=$(id -Gn)
+echo "  Grupos: $GRUPOS"
+echo ""
+
+# Verificar grupos especiales
+echo "  Pertenencia a grupos importantes:"
+for grupo in sudo wheel docker adm systemd-journal; do
+    if id -G $(whoami) | grep -qw "$(getent group $grupo | cut -d: -f3)"; then
+        echo "    ✅ $grupo"
+    else
+        echo "    ❌ $grupo"
+    fi
+done
+echo ""
+
+# Verificar permisos en directorios críticos
+echo "📁 PERMISOS EN DIRECTORIOS CRÍTICOS:"
+echo "─────────────────────────────────────────────────────────────────"
+echo "  Permiso lectura /root:"
+if [ -r /root ]; then
+    echo "    ✅ Puedes leer /root"
+else
+    echo "    ❌ No puedes leer /root"
+fi
+
+echo "  Permiso escritura /etc:"
+if [ -w /etc ]; then
+    echo "    ✅ Puedes escribir en /etc"
+else
+    echo "    ❌ No puedes escribir en /etc"
+fi
+
+echo "  Permiso lectura /var/log:"
+if [ -r /var/log ]; then
+    echo "    ✅ Puedes leer /var/log"
+else
+    echo "    ❌ No puedes leer /var/log"
+fi
+echo ""
+
+# Resumen de capacidades
+echo "📊 RESUMEN DE CAPACIDADES:"
+echo "─────────────────────────────────────────────────────────────────"
+if [ "$(id -u)" -eq 0 ]; then
+    echo "  🟢 NIVEL: Administrador (ROOT)"
+    echo "  Tienes control total del sistema"
+elif sudo -n true 2>/dev/null; then
+    echo "  🟡 NIVEL: Administrador (sudo sin contraseña)"
+    echo "  Puedes ejecutar comandos como root sin ingresar contraseña"
+elif sudo -l 2>/dev/null | grep -q "sudo"; then
+    echo "  🟡 NIVEL: Usuario con privilegios elevados (sudo)"
+    echo "  Puedes ejecutar comandos como root con contraseña"
+else
+    echo "  🔴 NIVEL: Usuario normal"
+    echo "  Solo tienes permisos estándar de usuario"
+fi
+echo ""
+
+echo "═════════════════════════════════════════════════════════════════"
